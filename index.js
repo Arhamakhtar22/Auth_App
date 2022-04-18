@@ -19,6 +19,15 @@ app.set('views', 'views');
 
 app.use(express.urlencoded({ extended: true}));
 app.use(session({secret:'notagoodsecret'}));
+
+const loginCheck = (req, res, next) =>{ //middleware to check if ur logged in
+    if (req.session.user_id){
+        next();
+    } else {
+        res.redirect('/login')
+    }
+}
+
 app.get('/', (req, res) => {
     res.send('HOME PAGE');
 })
@@ -45,23 +54,23 @@ app.get('/login', (req, res) =>{
 
 app.post('/login', async (req, res) => {
     const {username, password} = req.body;
-    const user = await User.findOne({username: username}); //checl if we can find the username
+    const user = await User.findOne({username: username}); //check if we can find the username
     const valid = await bcrypt.compare(password, user.hashedPassword); //compare the pass entered w hashed pass
     if (valid) {
         req.session.user_id = user._id; //if u succesfully login we will store your userid in session
-        res.redirect('/secret');
+        res.redirect('/home');
     } else {
         res.redirect('/login');
     }
 })
 
-app.get('/secret', (req, res) =>{
-    if (req.session.user_id){
-        res.send('THIS IS SECRET!')
-    } else{
-        res.redirect('/login')
-    }
-    
+app.get('/home', loginCheck, (req, res) =>{
+    res.render('home')
+})
+
+app.post('/logout', (req,res) =>{
+    req.session.user_id = null;
+    res.redirect('/login')
 })
 
 app.listen(3000, () => {
